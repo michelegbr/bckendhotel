@@ -11,10 +11,12 @@ class RoomController extends Controller
     {
         $query = Room::query();
 
+        // Fitur Search yang sudah kamu buat (Sangat Bagus!)
         if ($request->has('search')) {
             $search = $request->search;
             $query->where('room_number', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhere('room_type', 'like', "%{$search}%"); // Tambahan: bisa cari by tipe kamar
         }
 
         if ($request->has('room_type')) {
@@ -24,7 +26,9 @@ class RoomController extends Controller
             $query->where('status', $request->status);
         }
 
-        $limit = $request->get('limit', 10);
+        // Limit default diperbesar ke 100 agar di awal React bisa menampilkan semua kamar di dashboard
+        $limit = $request->get('limit', 100); 
+        
         return response()->json([
             'success' => true,
             'data' => $query->paginate($limit)
@@ -33,13 +37,19 @@ class RoomController extends Controller
 
     public function store(Request $request)
     {
+        // room_number diubah jadi nullable karena akan kita buat otomatis
         $validated = $request->validate([
-            'room_number' => 'required|string|unique:rooms',
+            'room_number' => 'nullable|string|unique:rooms',
             'room_type' => 'required|string',
             'price_per_night' => 'required|numeric|min:0',
             'description' => 'nullable|string',
             'status' => 'required|in:available,maintenance',
         ]);
+
+        // 🚀 KUNCI PERBAIKAN: Generate nomor kamar acak (Misal: R-8492) jika kosong
+        if (empty($validated['room_number'])) {
+            $validated['room_number'] = 'R-' . rand(1000, 9999);
+        }
 
         return response()->json([
             'success' => true,
@@ -61,7 +71,7 @@ class RoomController extends Controller
         if (!$room) return response()->json(['message' => 'Kamar tidak ditemukan'], 404);
 
         $validated = $request->validate([
-            'room_number' => 'string|unique:rooms,room_number,' . $id,
+            'room_number' => 'nullable|string|unique:rooms,room_number,' . $id,
             'room_type' => 'string',
             'price_per_night' => 'numeric|min:0',
             'description' => 'nullable|string',
@@ -69,6 +79,7 @@ class RoomController extends Controller
         ]);
 
         $room->update($validated);
+        
         return response()->json(['success' => true, 'data' => $room]);
     }
 
@@ -78,6 +89,7 @@ class RoomController extends Controller
         if (!$room) return response()->json(['message' => 'Kamar tidak ditemukan'], 404);
 
         $room->delete();
+        
         return response()->json(['success' => true, 'message' => 'Kamar dihapus']);
     }
 }
