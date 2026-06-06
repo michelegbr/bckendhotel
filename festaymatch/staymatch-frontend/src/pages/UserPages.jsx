@@ -1,63 +1,16 @@
 import { useState, useEffect } from "react";
-import { HOTELS as DUMMY_HOTELS, ICONS, fmt } from "../data/mockData";
+// HOTELS as DUMMY_HOTELS sudah dihapus!
+import { ICONS, fmt } from "../data/mockData";
 import { Icon, StatusBadge, HotelCard } from "../components/Shared";
 
-export function PageHome({ onNavigate }) {
+// Tambahkan props 'hotels' yang dikirim dari App.jsx
+export function PageHome({ hotels = [], onNavigate }) {
   const [dest, setDest] = useState("");
   const cities = ["Semua", "Jakarta", "Bali", "Surabaya", "Yogyakarta", "Bandung", "Makassar", "Lombok"];
   const [city, setCity] = useState("Semua");
   
-  const [rooms, setRooms] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchRooms = async () => {
-      try {
-        const response = await fetch("http://127.0.0.1:8000/api/rooms");
-        const result = await response.json();
-
-        let roomList = [];
-        if (Array.isArray(result)) roomList = result;
-        else if (result?.data && Array.isArray(result.data)) roomList = result.data;
-        else if (result?.data?.data && Array.isArray(result.data.data)) roomList = result.data.data;
-        else if (result?.data && typeof result.data === 'object') roomList = Object.values(result.data);
-        else if (typeof result === 'object') roomList = Object.values(result);
-
-        const validRooms = roomList.filter(r => r && typeof r === 'object' && r.id);
-
-        if (validRooms.length > 0) {
-          const mappedData = validRooms.map((room) => ({
-            id: room.id,
-            name: `Kamar ${room.room_type || 'Tipe'} (${room.room_number || '-'})`,
-            city: "Jakarta",
-            location: "StayMatch Hotel Pusat",
-            price: room.price_per_night || 0,
-            stars: 5,
-            emoji: "🛏️",
-            tag: room.status === "available" ? "Tersedia" : "Penuh",
-            available: room.status === "available",
-            rating: 4.9,
-            reviews: 120,
-            amenities: ["AC", "Free Wifi", "Smart TV", "Kulkas"],
-            desc: room.description || "Kamar nyaman dan luas.",
-            rooms: [{ id: room.id, name: room.room_type || 'Kamar', desc: room.description, price: room.price_per_night, capacity: 2 }]
-          }));
-          setRooms(mappedData);
-        } else {
-          setRooms(DUMMY_HOTELS);
-        }
-      } catch (error) {
-        console.error("Gagal mengambil API Rooms:", error);
-        setRooms(DUMMY_HOTELS);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchRooms();
-  }, []);
-
-  const filtered = rooms.filter(h => city === "Semua" || h.city === city).slice(0, 4);
+  // Fitur pencarian filter kota dari data asli
+  const filtered = hotels.filter(h => city === "Semua" || h.city === city).slice(0, 4);
 
   return (
     <div className="page-enter">
@@ -103,7 +56,8 @@ export function PageHome({ onNavigate }) {
           </div>
         </div>
         
-        {isLoading ? (
+        {/* Loading state sederhana jika data dari App.jsx belum masuk */}
+        {hotels.length === 0 ? (
            <div style={{ textAlign: "center", padding: "40px", color: "var(--g400)" }}>
               Mengambil data dari server...
            </div>
@@ -117,7 +71,8 @@ export function PageHome({ onNavigate }) {
   );
 }
 
-export function PageSearch({ onNavigate }) {
+// Tambahkan props 'hotels' yang dikirim dari App.jsx
+export function PageSearch({ hotels = [], onNavigate }) {
   const [query, setQuery] = useState("");
   const [starF, setStarF] = useState(0);
   const [sort, setSort] = useState("popular");
@@ -125,15 +80,18 @@ export function PageSearch({ onNavigate }) {
   const allAmens = ["Kolam Renang", "Free Wifi", "Sarapan", "Spa", "Gym", "Private Beach"];
   const toggleAmen = (a) => setAmenF(prev => prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a]);
 
-  let hotels = DUMMY_HOTELS.filter(h => {
+  // Gunakan props 'hotels' alih-alih DUMMY_HOTELS
+  let resultList = hotels.filter(h => {
     if (query && !h.name.toLowerCase().includes(query.toLowerCase()) && !h.location.toLowerCase().includes(query.toLowerCase())) return false;
     if (starF && h.stars !== starF) return false;
-    if (amenF.length && !amenF.every(a => h.amenities.includes(a))) return false;
+    // Pengecekan aman jika amenities undefined dari database
+    if (amenF.length && (!h.amenities || !amenF.every(a => h.amenities.includes(a)))) return false;
     return true;
   });
-  if (sort === "price_asc") hotels = [...hotels].sort((a, b) => a.price - b.price);
-  else if (sort === "price_desc") hotels = [...hotels].sort((a, b) => b.price - a.price);
-  else if (sort === "rating") hotels = [...hotels].sort((a, b) => b.rating - a.rating);
+
+  if (sort === "price_asc") resultList = [...resultList].sort((a, b) => a.price - b.price);
+  else if (sort === "price_desc") resultList = [...resultList].sort((a, b) => b.price - a.price);
+  else if (sort === "rating") resultList = [...resultList].sort((a, b) => b.rating - a.rating);
 
   return (
     <div className="page-enter">
@@ -156,12 +114,12 @@ export function PageSearch({ onNavigate }) {
         </div>
       </div>
       <div className="section">
-        <div style={{ marginBottom: 16, fontSize: 13, color: "var(--g600)" }}>Menampilkan <strong style={{ color: "var(--black)" }}>{hotels.length}</strong> hotel</div>
-        {hotels.length === 0 ? (
+        <div style={{ marginBottom: 16, fontSize: 13, color: "var(--g600)" }}>Menampilkan <strong style={{ color: "var(--black)" }}>{resultList.length}</strong> hotel</div>
+        {resultList.length === 0 ? (
           <div className="empty"><div className="empty-icon">🔍</div><p>Tidak ada hotel yang sesuai filter.</p></div>
         ) : (
           <div className="grid-4">
-            {hotels.map(h => <HotelCard key={h.id} hotel={h} onClick={() => onNavigate("detail", h)} />)}
+            {resultList.map(h => <HotelCard key={h.id} hotel={h} onClick={() => onNavigate("detail", h)} />)}
           </div>
         )}
       </div>
@@ -198,12 +156,12 @@ export function PageDetail({ hotel, onNavigate, user, onNeedLogin }) {
           </div>
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 18 }}>
-          {hotel.amenities.map(a => <span key={a} className="amenity-tag">{a}</span>)}
+          {hotel.amenities && hotel.amenities.map(a => <span key={a} className="amenity-tag">{a}</span>)}
         </div>
         <p style={{ fontSize: 13, color: "var(--g600)", lineHeight: 1.75, marginBottom: 26 }}>{hotel.desc}</p>
         <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: 1, color: "var(--g600)", marginBottom: 14, fontWeight: 500 }}>Pilih Tipe Kamar</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {hotel.rooms.map(r => (
+          {hotel.rooms && hotel.rooms.map(r => (
             <div key={r.id} className="room-card">
               <div>
                 <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 3 }}>{r.name}</div>
@@ -224,21 +182,13 @@ export function PageDetail({ hotel, onNavigate, user, onNeedLogin }) {
   );
 }
 
-// =================================================================
-// 🚀 INTEGRASI API POST BOOKING (CHECKOUT)
-// =================================================================
-// =================================================================
-// 🚀 INTEGRASI API POST BOOKING (CHECKOUT)
-// =================================================================
 export function PageBooking({ booking, onNavigate, onConfirm }) {
-  // DEFAULT PAYMENT DIUBAH JADI 'bank' BUKAN 'card'
   const [form, setForm] = useState({ name: "", email: "", phone: "", cin: "", cout: "", note: "", payment: "bank" });
   const [nights, setNights] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
 
   const { hotel, room } = booking || {};
   
-  // EFEK BARU: MENGHITUNG OTOMATIS JUMLAH MALAM SAAT TANGGAL BERUBAH
   useEffect(() => {
     if (form.cin && form.cout) {
       const start = new Date(form.cin);
@@ -285,10 +235,13 @@ export function PageBooking({ booking, onNavigate, onConfirm }) {
 
         if (!res.ok) {
             console.error("Error API Booking:", data);
-            throw new Error(data.message || "Gagal menyimpan ke database");
+            alert(data.message || "Maaf, transaksi gagal diproses.");
+            setIsLoading(false);
+            return; 
         }
 
-        const bookingId = data.data?.id || data.id || "STM-" + Date.now().toString().slice(-6);
+        const bookingId = data.data?.id || data.id; 
+        
         onConfirm({
             id: bookingId,
             hotelName: hotel.name,
@@ -300,23 +253,12 @@ export function PageBooking({ booking, onNavigate, onConfirm }) {
             total: total,
             status: "pending" 
         });
+        
         onNavigate("confirm");
 
     } catch (error) {
-        console.warn("API Error, beralih ke mode offline karena:", error.message);
-        const fallbackId = "STM-" + Date.now().toString().slice(-6);
-        onConfirm({ 
-            id: fallbackId, 
-            hotelName: hotel.name, 
-            roomName: room.name, 
-            guestName: form.name, 
-            email: form.email, 
-            checkIn: payload.check_in_date, 
-            checkOut: payload.check_out_date, 
-            total, 
-            status: "pending" 
-        });
-        onNavigate("confirm");
+        console.error("Fatal Error:", error);
+        alert("Terjadi kesalahan jaringan. Gagal terhubung ke server.");
     } finally {
         setIsLoading(false);
     }
@@ -343,7 +285,6 @@ export function PageBooking({ booking, onNavigate, onConfirm }) {
               <div className="form-group"><label className="form-label">Check-out</label><input className="form-input" type="date" value={form.cout} onChange={e => upd("cout", e.target.value)} /></div>
             </div>
             <div className="form-group"><label className="form-label">Jumlah Malam</label>
-              {/* INPUT JUMLAH MALAM DIBUAT READ-ONLY AGAR USER TIDAK BISA NGASAL */}
               <input className="form-input" type="number" value={nights} readOnly style={{ maxWidth: 100, backgroundColor: "var(--g50)", color: "var(--g600)", cursor: "not-allowed" }} />
             </div>
             <div className="form-group"><label className="form-label">Permintaan Khusus (opsional)</label><textarea className="form-input" rows={2} placeholder="Ex: kamar lantai atas, extra pillow..." value={form.note} onChange={e => upd("note", e.target.value)} /></div>
@@ -351,13 +292,11 @@ export function PageBooking({ booking, onNavigate, onConfirm }) {
           <div className="booking-section">
             <div className="section-label">Metode Pembayaran</div>
             <div className="chips" style={{ marginBottom: 16 }}>
-              {/* KARTU KREDIT DIHAPUS DARI LIST INI */}
               {[["bank", "🏦 Transfer Bank"], ["ewallet", "📱 GoPay / OVO"]].map(([v, l]) => (
                 <button key={v} className={`chip ${form.payment === v ? "active" : ""}`} onClick={() => upd("payment", v)}>{l}</button>
               ))}
             </div>
             
-            {/* UI KARTU KREDIT DIHAPUS */}
             {form.payment === "bank" && <div className="alert alert-success"><Icon d={ICONS.check} size={14} />Instruksi transfer akan dikirim ke email kamu setelah booking.</div>}
             {form.payment === "ewallet" && <div className="alert alert-success"><Icon d={ICONS.check} size={14} />Kamu akan diarahkan ke halaman GoPay / OVO untuk menyelesaikan pembayaran.</div>}
           </div>
@@ -385,7 +324,6 @@ export function PageBooking({ booking, onNavigate, onConfirm }) {
 export function PageConfirm({ confirm, onNavigate }) {
   if (!confirm) return null;
   
-  // Fungsi sakti untuk unduh/print
   const handleDownload = () => {
     window.print();
   };
@@ -414,11 +352,8 @@ export function PageConfirm({ confirm, onNavigate }) {
           <div className="confirm-row"><span className="confirm-label">Status</span><StatusBadge status={confirm.status} /></div>
         </div>
         
-        {/* Bagian ini yang kita ubah */}
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }} className="no-print">
           <button className="btn btn-primary" onClick={() => onNavigate("home")}><Icon d={ICONS.home} size={14} />Beranda</button>
-          
-          {/* TOMBOL UNDUH SEKARANG AKTIF */}
           <button className="btn btn-outline" onClick={handleDownload}>
             <Icon d={ICONS.download} size={14} />Unduh / Print Voucher
           </button>
@@ -429,64 +364,64 @@ export function PageConfirm({ confirm, onNavigate }) {
   );
 }
 
-
 export function PageMyBookings({ user }) {
   const [mine, setMine] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
   
-  // 1. STATE BARU UNTUK PAGINATION
   const [currentPage, setCurrentPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
 
-  // 2. FUNGSI FETCH SEKARANG MENERIMA NOMOR HALAMAN
   const fetchMyBookings = async (pageNumber = 1) => {
     setIsLoading(true);
+    setError("");
+    
     try {
       const token = localStorage.getItem("token");
-      
-      // Tembak API Booking dengan parameter ?page=
+      if (!token) {
+        throw new Error("Anda belum login atau token kadaluarsa.");
+      }
+
       const res = await fetch(`http://127.0.0.1:8000/api/bookings?page=${pageNumber}`, {
         headers: {
           "Accept": "application/json",
           "Content-Type": "application/json",
-          ...(token ? { "Authorization": `Bearer ${token}` } : {})
+          "Authorization": `Bearer ${token}`
         }
       });
       
-      const data = await res.json();
+      const json = await res.json();
 
-      // Karena pakai ->paginate() di Laravel, array data asli sekarang bersembunyi di dalam "data.data"
-      let bookingList = [];
-      if (data && Array.isArray(data.data)) bookingList = data.data; 
-      else if (Array.isArray(data)) bookingList = data; // Fallback kalau gak pakai paginate
+      if (!res.ok) {
+        throw new Error(json.message || "Gagal mengambil data dari server.");
+      }
 
-      const validBookings = bookingList.filter(b => b && typeof b === 'object' && b.id);
+      let bookingItems = [];
+      let current = 1;
+      let last = 1;
 
-      // Selaraskan data dari MySQL agar sesuai dengan format UI
-      const mappedBookings = validBookings.map(b => ({
-        id: b.id,
-        hotelName: "StayMatch Hotel Pusat",
-        roomName: `Kamar (ID: ${b.room_id})`,
-        checkIn: b.check_in_date,
-        checkOut: b.check_out_date,
-        total: parseFloat(b.total_price) || 0,
-        status: b.status || "pending"
-      }));
-      
-      setMine(mappedBookings);
+      if (json.data && Array.isArray(json.data.data)) {
+        bookingItems = json.data.data;
+        current = json.data.current_page || 1;
+        last = json.data.last_page || 1;
+      } else if (json.data && Array.isArray(json.data)) {
+        bookingItems = json.data;
+      } else if (Array.isArray(json)) {
+        bookingItems = json;
+      }
 
-      // SIMPAN INFO HALAMAN DARI LARAVEL KE STATE REACT
-      setCurrentPage(data.current_page || 1);
-      setLastPage(data.last_page || 1);
+      setMine(bookingItems);
+      setCurrentPage(current);
+      setLastPage(last);
 
-    } catch (error) {
-      console.error("Gagal menarik data pesanan:", error);
+    } catch (err) {
+      console.error("Error menarik histori:", err);
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Panggil fetch halaman 1 saat komponen pertama kali dimuat
   useEffect(() => {
     fetchMyBookings(1);
   }, []);
@@ -496,36 +431,56 @@ export function PageMyBookings({ user }) {
       <div className="section-header">
         <div>
           <div className="section-title">Pesanan Saya</div>
-          <div className="section-sub">{isLoading ? "Memuat..." : `Menampilkan halaman ${currentPage}`}</div>
+          <div className="section-sub">
+            {isLoading ? "Memuat..." : `Menampilkan halaman ${currentPage}`}
+          </div>
         </div>
       </div>
       
+      {error && (
+        <div className="alert alert-error" style={{ marginBottom: 16 }}>
+          <Icon d={ICONS.x} size={14} /> {error}
+        </div>
+      )}
+
       {isLoading ? (
         <div style={{ textAlign: "center", padding: "40px", color: "var(--g400)" }}>
-           Sedang mengambil data pesananmu...
+           Sedang mengambil data pesanan dari database...
         </div>
-      ) : mine.length === 0 ? (
-        <div className="empty"><div className="empty-icon">📋</div><p>Belum ada booking. Ayo cari hotel!</p></div> 
+      ) : mine.length === 0 && !error ? (
+        <div className="empty">
+          <div className="empty-icon">📋</div>
+          <p>Belum ada booking. Ayo cari hotel!</p>
+        </div> 
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {mine.map(b => (
+          {mine.map((b) => (
             <div key={b.id} className="card" style={{ padding: "16px 20px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 3 }}>{b.hotelName}</div>
-                  <div style={{ fontSize: 12, color: "var(--g600)", marginBottom: 8 }}>{b.roomName}</div>
-                  <div style={{ fontSize: 12, color: "var(--g600)" }}>Check-in: {b.checkIn} → {b.checkOut}</div>
+                  <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 3 }}>
+                    StayMatch Hotel
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--g600)", marginBottom: 8 }}>
+                    Kamar: {b.room?.room_type || b.room?.name || `ID ${b.room_id}`}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--g600)" }}>
+                    Check-in: {b.check_in_date} → {b.check_out_date}
+                  </div>
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <StatusBadge status={b.status} />
-                  <div style={{ fontSize: 15, fontWeight: 500, marginTop: 8 }}>{fmt(b.total)}</div>
-                  <div style={{ fontSize: 11, color: "var(--g600)" }}>Kode: STM-{b.id}</div>
+                  <div style={{ fontSize: 15, fontWeight: 500, marginTop: 8 }}>
+                    {fmt(parseFloat(b.total_price))}
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--g600)" }}>
+                    Kode: STM-{b.id}
+                  </div>
                 </div>
               </div>
             </div>
           ))}
 
-          {/* 3. TOMBOL NAVIGASI PAGINATION */}
           {lastPage > 1 && (
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 20, paddingTop: 20, borderTop: "1px solid var(--g100)" }}>
               <span style={{ fontSize: 13, color: "var(--g600)" }}>
