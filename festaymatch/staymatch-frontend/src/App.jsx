@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import "./index.css";
-// ICONS tetap di-import karena ini hanya aset gambar SVG (bukan data database)
 import { ICONS } from "./data/mockData";
 import { Icon, Toast, Modal } from "./components/Shared";
 import { PageLogin, PageRegister, AdminLogin } from "./pages/AuthPages";
 import { PageHome, PageSearch, PageDetail, PageBooking, PageConfirm, PageMyBookings } from "./pages/UserPages";
 import { AdminPanel } from "./pages/AdminPages";
+
+// Tentukan API URL secara dinamis
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
 
 export default function App() {
   const [mode, setMode] = useState("user"); 
@@ -31,7 +33,7 @@ export default function App() {
   useEffect(() => {
     const fetchGlobalRooms = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/rooms");
+        const res = await fetch(`${API_URL}/rooms`);
         const json = await res.json();
 
         let roomList = [];
