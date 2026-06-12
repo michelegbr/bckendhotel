@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { ICONS, fmt } from "../data/mockData";
 import { Icon, StatusBadge, Toast, Modal } from "../components/Shared";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
+
 function AdminDashboard({ bookings, hotels, users }) {
   const total = bookings.reduce((s, b) => s + (b.status !== "cancelled" ? b.total : 0), 0);
   const confirmed = bookings.filter(b => b.status === "confirmed").length;
@@ -66,7 +68,7 @@ function AdminBookings({ bookings, setBookings }) {
   const updateStatus = async (id, newStatus) => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://127.0.0.1:8000/api/bookings/${id}/status`, {
+      const res = await fetch(`${API_URL}/bookings/${id}/status`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -161,13 +163,13 @@ function AdminHotels({ hotels, setHotels }) {
 
       let res;
       if (modal === "add") {
-        res = await fetch("http://127.0.0.1:8000/api/rooms", {
+        res = await fetch(`${API_URL}/rooms`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
           body: JSON.stringify(payload)
         });
       } else {
-        res = await fetch(`http://127.0.0.1:8000/api/rooms/${form.id}`, {
+        res = await fetch(`${API_URL}/rooms/${form.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
           body: JSON.stringify(payload)
@@ -209,7 +211,7 @@ function AdminHotels({ hotels, setHotels }) {
     if (!window.confirm("Yakin ingin menghapus kamar ini secara permanen?")) return;
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://127.0.0.1:8000/api/rooms/${id}`, {
+      const res = await fetch(`${API_URL}/rooms/${id}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });
@@ -226,7 +228,7 @@ function AdminHotels({ hotels, setHotels }) {
       const token = localStorage.getItem("token");
       const newStatus = hotel.available ? "maintenance" : "available";
       
-      const res = await fetch(`http://127.0.0.1:8000/api/rooms/${hotel.id}`, {
+      const res = await fetch(`${API_URL}/rooms/${hotel.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({ status: newStatus })
@@ -377,7 +379,7 @@ export function AdminPanel({ onLogout, bookings, setBookings, hotels, setHotels,
       const headers = { "Authorization": `Bearer ${token}`, "Accept": "application/json", "Content-Type": "application/json" };
       
       try {
-        const resRooms = await fetch("http://127.0.0.1:8000/api/rooms", { headers });
+        const resRooms = await fetch(`${API_URL}/rooms`, { headers });
         if (resRooms.ok) {
           const dataRooms = await resRooms.json();
           let roomList = dataRooms?.data?.data || dataRooms?.data || dataRooms || [];
@@ -396,7 +398,7 @@ export function AdminPanel({ onLogout, bookings, setBookings, hotels, setHotels,
           })));
         }
 
-        const resBookings = await fetch("http://127.0.0.1:8000/api/bookings", { headers });
+        const resBookings = await fetch(`${API_URL}/bookings`, { headers });
         if (resBookings.ok) {
           const rawBookings = await resBookings.json();
           let bookingData = rawBookings?.data?.data || rawBookings?.data || rawBookings || [];
@@ -414,13 +416,13 @@ export function AdminPanel({ onLogout, bookings, setBookings, hotels, setHotels,
           })));
         }
 
-        const resUsers = await fetch("http://127.0.0.1:8000/api/users", { headers });
+        const resUsers = await fetch(`${API_URL}/users`, { headers });
         if (resUsers.ok) {
           const dataUsers = await resUsers.json();
           setUsers(Array.isArray(dataUsers) ? dataUsers : []);
         }
 
-        const resLogs = await fetch("http://127.0.0.1:8000/api/audit-logs", { headers });
+        const resLogs = await fetch(`${API_URL}/audit-logs`, { headers });
         if (resLogs.ok) {
           const dataLogs = await resLogs.json();
           setLogs(Array.isArray(dataLogs) ? dataLogs : []);

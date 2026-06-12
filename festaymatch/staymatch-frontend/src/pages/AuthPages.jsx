@@ -1,10 +1,8 @@
 import { useState } from "react";
-// Hanya ICONS yang kita ambil dari mockData karena itu cuma aset gambar SVG
 import { ICONS } from "../data/mockData";
 import { Icon } from "../components/Shared";
 
-// Base URL API Laravel
-const API_URL = "http://127.0.0.1:8000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
 
 export function PageLogin({ onLogin, onNavigate }) {
   const [form, setForm] = useState({ email: "", password: "" });

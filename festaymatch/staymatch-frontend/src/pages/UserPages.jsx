@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-// HOTELS as DUMMY_HOTELS sudah dihapus!
 import { ICONS, fmt } from "../data/mockData";
 import { Icon, StatusBadge, HotelCard } from "../components/Shared";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
 
 // Tambahkan props 'hotels' yang dikirim dari App.jsx
 export function PageHome({ hotels = [], onNavigate }) {
@@ -59,7 +60,7 @@ export function PageHome({ hotels = [], onNavigate }) {
         {/* Loading state sederhana jika data dari App.jsx belum masuk */}
         {hotels.length === 0 ? (
            <div style={{ textAlign: "center", padding: "40px", color: "var(--g400)" }}>
-              Mengambil data dari server...
+             Mengambil data dari server...
            </div>
         ) : (
           <div className="grid-4">
@@ -221,7 +222,7 @@ export function PageBooking({ booking, onNavigate, onConfirm }) {
 
     try {
         const token = localStorage.getItem("token");
-        const res = await fetch("http://127.0.0.1:8000/api/bookings", {
+        const res = await fetch(`${API_URL}/bookings`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -382,7 +383,7 @@ export function PageMyBookings({ user }) {
         throw new Error("Anda belum login atau token kadaluarsa.");
       }
 
-      const res = await fetch(`http://127.0.0.1:8000/api/bookings?page=${pageNumber}`, {
+      const res = await fetch(`${API_URL}/bookings?page=${pageNumber}`, {
         headers: {
           "Accept": "application/json",
           "Content-Type": "application/json",
